@@ -127,58 +127,7 @@ Use this template in the IaC menu to create a new webhook sensor that will be us
 
 This template will create a new sensor called "Slack_Slash_Commands" and will be preconfigured to parse the Slack slash command output. 
 
-```yaml
-version: 3
-hives:
-    cloud_sensor:
-        Slack_Slash_Commands:
-            data:
-                sensor_type: webhook            
-                webhook:
-                    secret: YOUR_SECRET_HERE                
-                    client_options:
-                        buffer_options: {}
-                        hostname: Slack_Slash_Commands
-                        identity:
-                            installation_key: YOUR_INSTALL_KEY_HERE
-                            oid: YOUR_OID_HERE
-                        mappings:
-                          - event_type_path: '{{"Slack Slash Command"}}'
-                            parsing_re: '([\w\-]+)=([^\\\"]+)(?:\\u0026)?'
-                            transform: 
-                                # setting these just to keep things clean
-                                +dvc_product: '{{ "Slash Command" }}'
-                                +dvc_vendor: '{{ "Slack" }}'
-
-                                #rename these to avoid confusion from the k:v pair key names
-                                +src_user_name: '{{ .user_name }}'
-                                +src_user_id: '{{ .user_id }}'
-                                +src_channel_name: '{{ .channel_name }}'
-                                -user_name: nil
-                                -user_id: nil
-                                -channel_name: nil
-
-                                # decode the url encoding
-                                +command: '{{ replace "%2F" "" $.command}}'
-                                +response_url: '{{ replace "%2F" "/" $.response_url | replace "%3A" ":"}}'
-
-                                # split out the command args into their own keys
-                                +parsed_text: '{{ replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" }}'
-                                +org_name: '{{ $org := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $org 0 }}'
-                                +users: '{{ $users := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $users 1 }}'
-                                +channel_privacy: '{{ $channel_privacy := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $channel_privacy 2 }}'
-                                +region: '{{ $region := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $region 3 }}'
-                                +template: '{{ $template := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $template 4 }}'
-                        platform: text
-                        proxy: {}
-                        sensor_seed_key: Slack_Slash_Commands
-
-            usr_mtd:
-                enabled: true
-                expiry: 0
-                tags: []
-                comment: ""
-```
+Download the IaC configuration here: [iac-slack_slash_sensor.yaml](iac-slack_slash_sensor.yaml)  
 
 #### Option 2: Manual Configuration
 
@@ -289,7 +238,9 @@ users:read.email
     ![OAuth and Permissions page showint token](images/oauth_token.png)  
 
 
-#### App Manifest
+#### App Manifest  
+Download the app manifest from here: (slack_app_manifest.json)[slack_app_manifest.json]
+
 ```json
 {
     "display_information": {
@@ -436,6 +387,12 @@ Save each of the secrets below to their own individual entries in the the LimaCh
 ## LimaCharlie D&R Rules  
 The Detection and Response rules are first triggered when a matching Slack slash command is detected. The responding action executes the first playbook to create the corresponding Slack channel and invite the designated users to the channel. When completed, the next rule is triggered. This rule is responsible for creating the organization with or without an IaC template, user group, and applying permissions to the user group.
 
+### D&R Rule IaC
+Download the D&R rule IaC configuration here: [iac-dr_rules.yaml](iac-dr_rules.yaml)
+
+> [!IMPORTANT]
+> Ensure you edit the file and change any field that says "CHANGE_ME" to their respective values. These will be the secrets you created in the [LimaCharlie Secrets](#limacharlie-secrets) section.  
+
 ### Configuration Steps
 1. Copy and paste the [following code](#dr-rule-iac) into the "Infrastructure as Code" page within the "Organization Settings" option for your organization.
 2. Click "Apply Additive Changes"  
@@ -449,86 +406,6 @@ The Detection and Response rules are first triggered when a matching Slack slash
    `Detect Slack Slash Command`  
    ![Showing D&R rules that were created](images/dr_rules.png)  
 
-#### D&R Rule IaC
-
-> [!IMPORTANT]
-> Ensure you change any field that says "CHANGE_ME" to their respective values. These will be the secrets you created in the [LimaCharlie Secrets](#limacharlie-secrets) section. 
-
-```yaml
-version: 3
-resources:
-hives:
-    dr-general:
-        Detect Slack Slash Command:
-            data:
-                detect:
-                    event: Slack Slash Command
-                    op: and
-                    rules:
-                      - op: is
-                        path: event/dvc_vendor
-                        value: Slack
-                      - op: is
-                        path: event/dvc_product
-                        value: Slash Command
-                      - op: is
-                        path: event/command
-                        value: create-org
-                respond:
-                    - action: report
-                      name: 'Creating Slack channel: #{{ .event.org_name }} requested by {{ .event.src_user_name }}'
-                    - action: extension request
-                      extension action: run_playbook
-                      extension name: ext-playbook
-                      extension request:
-                        credentials: '{{ "hive://secret/CHANGE_ME" }}'
-                        data:
-                            channel_name: '{{ .event.org_name }}'
-                            is_private: '{{ .event.channel_privacy }}'
-                            response_url: '{{ .event.response_url }}'
-                            slack_secret: '{{ "CHANGE_ME" }}'
-                            src_user_id: '{{ .event.src_user_id }}'
-                            users: '{{ .event.users }}'
-                            command_args: '{{ .event.parsed_text }}'
-                        name: '{{ "Create Slack Channel" }}'
-            usr_mtd:
-                enabled: true
-
-        Detect Slack Channel Created:
-            data:
-                detect:
-                    event: run_success
-                    op: and
-                    rules:
-                        - op: is
-                          path: routing/hostname
-                          value: ext-playbook
-                        - op: is
-                          path: event/data/slack_event
-                          value: slack_channel_created
-                respond:
-                    - action: report
-                      name: 'Slack channel created: #{{ .event.data.channel.name }}. Generating LC org'
-                    - action: extension request
-                      extension action: run_playbook
-                      extension name: ext-playbook
-                      extension request:
-                        credentials: '{{ "hive://secret/CHANGE_ME" }}'
-                        data:
-                            iac_url: '{{.event.template }}'
-                            org_location: '{{ .event.region }}'
-                            org_name: '{{ .event.data.channel.name }}'
-                            perm_template: '{{"my-group-template"}}'
-                            requestor: '{{UPDATE_ME!!!!}}'
-                            lc_user_secret: '{{"CHANGE_ME"}}'
-                            slack_channel: '{{ .event.data.channel.id }}'
-                            slack_secret: '{{"CHANGE_ME"}}'
-                            users:  '{{ .event.data.slack_data.users }}
-                        name: '{{ "Create LC Org" }}'
-            usr_mtd:
-                enabled: true
-```
-
 ## LimaCharlie Playbooks  
 This can either be done by utilizing the [IaC template](#option-1-sensor-iac-template) below to create and configure the playbooks at the same time, or [manual configuration](#option-2-manual-configuration) by creating the playbooks via the UI. If doing the manual configuration, you'll need to ensure the playbooks are named correctly OR update the D&R rules to the correct playbook names. The playbook name to execute is defined in the `extension request/name` field within the response action.
 
@@ -537,6 +414,7 @@ The two playbooks are responsible for interacting with Slack and LimaCharlie. Bo
 
 #### Slack Channel Creation Playbook  
 **Playbook Name:** `Create Slack Channel`  
+**Download Link:** [pb-create_slack_channel.py](pb-create_slack_channel.py)  
 **Required `data` Parameters:**  
 | Parameter | Required? | Description |
 | --------- | --------- | ----------- | 
@@ -546,7 +424,7 @@ The two playbooks are responsible for interacting with Slack and LimaCharlie. Bo
 | `src_user_id` | True | ID of the user who requested the channel creation passed as part of HTTP POST message from Slack |
 | `users` | True | A list of valid Slack users to invite to the newly created channel |
 | `slack_secret` | True | Name of the secret created in the [Slack API Key](#slack-api-key) step |
-| `command_args` | False | Parsed list of arguments sent to the Slash command<br />Useful for passing to additional D&R rules and playbooks |
+| `command_args` | False | Parsed list of arguments sent to the Slash command<br />Useful for passing to additional D&R rules and playbooks |  
 
 > [!TIP]
 > Most of these fields will come from the Slack slash command  
@@ -561,15 +439,15 @@ This is an example of a response action used to execute the Slack Channel Creati
                       extension action: run_playbook
                       extension name: ext-playbook
                       extension request:
-                        credentials: '{{ "hive://secret/lc_sdk_key" }}'
+                        credentials: '{{ "hive://secret/CHANGE_ME" }}'
                         data:
                             channel_name: '{{ .event.org_name }}'
+                            command_args: '{{ .event.parsed_text }}'
                             is_private: '{{ .event.channel_privacy }}'
                             response_url: '{{ .event.response_url }}'
-                            slack_secret: '{{ my_slack_api_secret }}'
+                            slack_secret: '{{ "CHANGE_ME" }}'
                             src_user_id: '{{ .event.src_user_id }}'
                             users: '{{ .event.users }}'
-                            command_args: '{{ .event.parsed_text }}'
                         name: '{{ "Create Slack Channel" }}'
 ```  
 
@@ -638,6 +516,7 @@ These are the contents of the `data` object returned from the playbook execution
 
 #### Create LimaCharlie Organization Playbook  
 **Playbook Name:** `Create LC Org`  
+**Download Link:** [pb-create_org.py](pb-create_org.py)  
 **Required `data` Parameters:**  
 | Parameter | Description |
 | --------- | ----------- |
@@ -659,17 +538,17 @@ These are the contents of the `data` object returned from the playbook execution
                       extension action: run_playbook
                       extension name: ext-playbook
                       extension request:
-                        credentials: '{{ "hive://secret/my_sdk_secret" }}'
+                        credentials: '{{ "hive://secret/CHANGE_ME" }}'
                         data:
-                            iac_url: '{{.event.}}'
-                            org_location: '{{"LCIO-NYC3-USAGE-V1"}}'
-                            org_name: '{{ .event.data.channel.name }}'
-                            group_perm_secret: '{{"my-group-secret"}}'
-                            requestor: '{{UPDATE_ME!!!!}}'
+                            group_perm_secret: '{{"CHANGE_ME"}}'
+                            iac_url: '{{ $args := split "+" .event.data.slack_data.command_args }}{{index $args 4}}'
                             lc_user_secret: '{{"CHANGE_ME"}}'
+                            org_location: '{{ $args := split "+" .event.data.slack_data.command_args }}{{index $args 3}}'
+                            org_name: '{{ .event.data.channel.name }}'
+                            requestor: '{{ .event.data.slack_data.src_user_name }}'
                             slack_channel: '{{ .event.data.channel.id }}'
                             slack_secret: '{{"CHANGE_ME"}}'
-                            users:  '
+                            users: '{{ .event.data.slack_data.users }}'
                         name: '{{ "Create LC Org" }}'
 ```
 
@@ -677,10 +556,40 @@ These are the contents of the `data` object returned from the playbook execution
 Utilize either the [IaC template](#option-1-playbook-iac-template) below for the fastest and easiest method of deploying the required sensor or the [manual configuration](#option-2-manual-playbook-creation) to customize the settings for your environment. 
 
 #### Option 1: Playbook IaC Template
-Use this template in the IaC menu to create the playbooks utilized in the D&R rules [previously created](#limacharlie-dr-rules). This option will be typically be easiest to ensure compatibility with the previously created content. 
+Utilize the following IaC configuration to add the required playbooks to your organization:  
+**Playbook IaC Download Link:** [iac-playbooks.yaml](iac-playbooks.yaml)  
+> [!TIP]
+> This option will be typically be easiest to ensure compatibility with the previously created content
+Use this template in the IaC menu to create the playbooks utilized in the D&R rules [previously created](#limacharlie-dr-rules).  
 
 
 
 
 #### Option 2: Manual Playbook Creation
+> [!NOTE]
+> This option assumes you are familiar with LimaCharlie and playbook creation
 
+Ensure the names provided below are utilized when creating the playbooks, otherwise you will need to change the playbook names in the [D&R rules](#limacharlie-dr-rules) to the respective names.
+
+Playbook Name: `Create LC Org`  
+Playbook File: [pb-create_org.py](pb-create_org.py)
+
+Playbook Name: `Create Slack Channel`
+Playbook File: [pb-create_slack_channel.py](pb-create_slack_channel.py)
+
+## IaC Templates
+IaC templates are used when deploying new organizations for rapid configuration and standardization of the new org. These templates can either be stored at a URL accessible by LimaCharlie or within LimaCharlie as a payload. To utilize an IaC tempalte at a URL, simply put the URL in for the template name when executing the Slack Slash Command.  
+
+To store an IaC template within LimaCharlie's payloads, utilize the following steps:
+1. On the left-hand menu, click "Sensors" and then "Payloads"
+2. Click "Add Payload"
+3. Name the payload something that is easy to reference, such as `dfir-template`. This is what will be provided as the template name in the Slack slash command
+4. Drag and drop the IaC template into the upload area
+5. Click "Upload Payload"
+6. Verify the upload was successful and now appears in the organization's Payloads  
+
+> [!TIP]
+> To update a template, simply delete the payload and upload the updated template with the same name as before.
+
+## Testing and Completion
+Go to Slack and run the following command, replacing the user email address with your email address. This will create a new private slack channel named `#lc-slacker-test` in the US region 

@@ -5916,10 +5916,6 @@ bin/python3.11
 bin/tabulate
 lib64
 pyvenv.cfg
-create_org_cli.py
-slack_slash_sensor-iac.yaml
-20250821 - TPS Reporting Solutions IaC.yaml
-LC-create_org.py
-LC-create_splunk_channel.py
-lookup_permissions.py
-LC-create_slack_channel.py
+20*IaC.yaml
+dev-*.*
+*.pyc

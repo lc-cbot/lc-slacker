@@ -1,0 +1,71 @@
+version: 3
+resources:
+hives:
+    dr-general:
+        Detect Slack Slash Command  - create-org:
+            data:
+                detect:
+                    event: Slack Slash Command
+                    op: and
+                    rules:
+                        - op: is
+                          path: event/dvc_vendor
+                          value: Slack
+                        - op: is
+                          path: event/dvc_product
+                          value: Slash Command
+                        - op: is
+                          path: event/command
+                          value: create-org
+                respond:
+                    - action: report
+                      name: 'Creating Slack channel: #{{ .event.org_name }} requested by {{ .event.src_user_name }}'
+                    - action: extension request
+                      extension action: run_playbook
+                      extension name: ext-playbook
+                      extension request:
+                        credentials: '{{ "hive://secret/CHANGE_ME" }}'
+                        data:
+                            channel_name: '{{ .event.org_name }}'
+                            command_args: '{{ .event.parsed_text }}'
+                            is_private: '{{ .event.channel_privacy }}'
+                            response_url: '{{ .event.response_url }}'
+                            slack_secret: '{{ "CHANGE_ME" }}'
+                            src_user_id: '{{ .event.src_user_id }}'
+                            users: '{{ .event.users }}'
+                        name: '{{ "Create Slack Channel" }}'
+            usr_mtd:
+                enabled: true
+        Detect Slack Channel Created:
+            data:
+                detect:
+                    event: run_success
+                    op: and
+                    rules:
+                        - op: is
+                          path: routing/hostname
+                          value: ext-playbook
+                        - op: is
+                          path: event/data/slack_event
+                          value: slack_channel_created
+                respond:
+                    - action: report
+                      name: 'Slack channel created: #{{ .event.data.channel.name }}. Generating LC org'
+                    - action: extension request
+                      extension action: run_playbook
+                      extension name: ext-playbook
+                      extension request:
+                        credentials: '{{ "hive://secret/CHANGE_ME" }}'
+                        data:
+                            group_perm_secret: '{{"CHANGE_ME"}}'
+                            iac_url: '{{ $args := split "+" .event.data.slack_data.command_args }}{{index $args 4}}'
+                            lc_user_secret: '{{"CHANGE_ME"}}'
+                            org_location: '{{ $args := split "+" .event.data.slack_data.command_args }}{{index $args 3}}'
+                            org_name: '{{ .event.data.channel.name }}'
+                            requestor: '{{ .event.data.slack_data.src_user_name }}'
+                            slack_channel: '{{ .event.data.channel.id }}'
+                            slack_secret: '{{"CHANGE_ME"}}'
+                            users: '{{ .event.data.slack_data.users }}'
+                        name: '{{ "Create LC Org" }}'
+            usr_mtd:
+                enabled: true

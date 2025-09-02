@@ -1,0 +1,50 @@
+{
+    "display_information": {
+        "name": "LimaCharlie",
+        "description": "Slash command integration with LimaCharlie",
+        "background_color": "#4070ff"
+    },
+    "features": {
+        "bot_user": {
+            "display_name": "LimaCharlie",
+            "always_online": true
+        },
+        "slash_commands": [
+            {
+                "command": "/create-org",
+                "url": "https://CHANGE_URL",
+                "description": "Creates a new slack channel and LC org",
+                "usage_hint": "/create-org ORG_NAME USER_EMAILS_FOR_ACCESS IS_PRIVATE REGION TEMPLATE_NAME",
+                "should_escape": false
+            }
+        ]
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "channels:history",
+                "channels:join",
+                "channels:manage",
+                "channels:read",
+                "channels:write.invites",
+                "chat:write",
+                "chat:write.public",
+                "commands",
+                "groups:history",
+                "groups:read",
+                "groups:write",
+                "groups:write.invites",
+                "groups:write.topic",
+                "im:write",
+                "mpim:write",
+                "users:read",
+                "users:read.email"
+            ]
+        }
+    },
+    "settings": {
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false
+    }
+}

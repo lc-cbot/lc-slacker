@@ -1,0 +1,50 @@
+version: 3
+hives:
+    cloud_sensor:
+        Slack_Slash_Commands:
+            data:
+                sensor_type: webhook
+                webhook:
+                    client_options:
+                        buffer_options: {}
+                        hostname: Slack_Slash_Commands
+                        identity:
+                            installation_key: CHANGE_ME
+                            oid: CHANGE_ME
+                        mappings:
+                          - event_type_path: '{{"Slack Slash Command"}}'
+                            parsing_re: '([\w\-]+)=([^\\\"]+)(?:\\u0026)?'
+                            transform: 
+                                # setting these just to keep things clean
+                                +dvc_product: '{{ "Slash Command" }}'
+                                +dvc_vendor: '{{ "Slack" }}'
+
+                                #rename these to avoid confusion from the k:v pair key names
+                                +src_user_name: '{{ .user_name }}'
+                                +src_user_id: '{{ .user_id }}'
+                                +src_channel_name: '{{ .channel_name }}'
+                                -user_name: nil
+                                -user_id: nil
+                                -channel_name: nil
+                                    #          -token: nil # uncomment this to remove the token; unsure of security implications
+
+                                # decode the url encoding
+                                +command: '{{ replace "%2F" "" $.command}}'
+                                +response_url: '{{ replace "%2F" "/" $.response_url | replace "%3A" ":"}}'
+
+                                # split out the command args into their own keys
+                                +parsed_text: '{{ replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" }}'
+                                +org_name: '{{ $org := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $org 0 }}'
+                                +users: '{{ $users := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $users 1 }}'
+                                +channel_privacy: '{{ $channel_privacy := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $channel_privacy 2 }}'
+                                +region: '{{ $region := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $region 3 }}'
+                                +template: '{{ $template := replace "%2F" "/" $.text | replace "%3A" ":" | replace "%40" "@" | split "+" }}{{ index $template 4 }}'
+                        platform: text
+                        proxy: {}
+                        sensor_seed_key: Slack_Slash_Commands
+                    secret: CHANGE_ME
+            usr_mtd:
+                enabled: true
+                expiry: 0
+                tags: []
+                comment: ""
