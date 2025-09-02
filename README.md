@@ -19,7 +19,7 @@ sequenceDiagram
     Playbook->>Slack: Creates a new channel in slack
     Playbook->>Slack: Invites users specified in `create-org` command invocation
     Playbook->>Sensor: Adds `slack_event` key to playbook returned data with the outcome
-    Note over Playbook,Sensor: Sensor is `ext-playbook`
+    Note over Playbook,Sensor: The playbook extension sensor is named `ext-playbook`
     Playbook->>Rule: Detects `event/slack_event/slack_channel_created` from ext-playbook
     Note over Playbook,Rule: Rule Name: "Detect Slack Channel Created"
     Rule->>Playbook: Executes playbook to build org when requested channel is created
