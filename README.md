@@ -558,12 +558,11 @@ Utilize either the [IaC template](#option-1-playbook-iac-template) below for the
 #### Option 1: Playbook IaC Template
 Utilize the following IaC configuration to add the required playbooks to your organization:  
 **Playbook IaC Download Link:** [iac-playbooks.yaml](iac-playbooks.yaml)  
-> [!TIP]
-> This option will be typically be easiest to ensure compatibility with the previously created content
+  
 Use this template in the IaC menu to create the playbooks utilized in the D&R rules [previously created](#limacharlie-dr-rules).  
 
-
-
+> [!TIP]
+> This option will be typically be easiest to ensure compatibility with the previously created content  
 
 #### Option 2: Manual Playbook Creation
 > [!NOTE]
@@ -583,13 +582,54 @@ IaC templates are used when deploying new organizations for rapid configuration 
 To store an IaC template within LimaCharlie's payloads, utilize the following steps:
 1. On the left-hand menu, click "Sensors" and then "Payloads"
 2. Click "Add Payload"
+   ![LimaCharlie Payloads](images/payloads.png)
 3. Name the payload something that is easy to reference, such as `dfir-template`. This is what will be provided as the template name in the Slack slash command
+   ![Add Payload modal](images/add_payload.png)
 4. Drag and drop the IaC template into the upload area
+   ![Upload payload modal](images/payload_file_upload.png)
 5. Click "Upload Payload"
+   ![Upload payload modal after file added](images/upload_payload.png)
 6. Verify the upload was successful and now appears in the organization's Payloads  
+   ![LimaCharlie Payloads](images/payloads.png)
 
 > [!TIP]
 > To update a template, simply delete the payload and upload the updated template with the same name as before.
 
 ## Testing and Completion
-Go to Slack and run the following command, replacing the user email address with your email address. This will create a new private slack channel named `#lc-slacker-test` in the US region 
+Go to Slack and run the following command, replacing the user email address with your email address. This will create a new private slack channel named `#lc-slacker-test` in the US region using the `dfir-template` [IaC template](#iac-templates) previously created.  
+  
+`/create-org lc-slacker-test YOUR_EMAIL true us dfir-template`  
+> [!NOTE]
+> If you named your IaC template something different, substitute your name for `dfir-template` in the command above.
+
+### Test Results
+Verify the following occurs to validate everything is working as intended:  
+- [ ] A new Slack channel is created named "#lc-slacker-test"  
+  ![Image showing Slack channel was created and name of the channel](images/testing-channel_created.png)  
+- [ ] You were invted to the Slack channel  
+  ![Image showing invitation to new Slack channel](images/testing-user_invited.png)  
+- [ ] Org creation status messages and results appear in the new Slack channel  
+  ![Image showing org creation status messages](images/testing-status_messages.png)  
+- [ ] A new LimaCharlie organization is created named "lc-slacker-test"  
+  ![Image showing new org within LimaCharlie](images/testing-showing_new_org.png)  
+- [ ] A new LimaCharlie group is created named "lc-slacker-test"  
+  ![Image showing new LimaCharlie group](images/testing-lc_group.png)  
+- [ ] You are set as the owner of the "lc-slacker-test" group  
+  ![Image showing owner of new group](images/testing-new_group_owner.png)  
+- [ ] The group is associated with the new "lc-slacker-test" org  
+  ![Image showing the new group is associated with the new org](images/testing-group_org_assoc.png)  
+- [ ] The correct permissions are applied to the "lc-slacker-test" group  
+  ![Image showing sample group permissions](images/testing-group_perms.png)  
+- [ ] The following extensions are enabled:  
+  * Plaso (`ext-plaso`)  
+  * Velociraptor (`ext-velociraptor`)  
+  * Hyabusa (`ext-hyabusa`)  
+  * Artifacts (`ext-artifact`)  
+  ![Image showing enabled extensions](images/testing-org_extensions.png)  
+
+If all of the above are verified, congratulations, you have succesfully configured a Slack app to provide a slash command that will build you a LimaCharlie organization in minutes!
+
+## Next Steps
+This example shows just the tip of the iceberg on what you can accomplish with LimaCharlie. What other ideas can you come up with?  
+  
+Share your ideas and creations with us and the community on the [LimaCharlie discourse](https://community.limacharlie.com/)!
