@@ -42,23 +42,23 @@ sequenceDiagram
 ```
 
 ## Components
-This shows the following parts of this use case
-* [LimaCharlie Webhook Sensor](#limacharlie-webhook-sensor)
-  * Receives the output from the Slack app when using the Slack slash command
-* [Slack App](#slack-app)
-  * Provides an API token to interact with Slack and configuration of the slash command
-* [LimaCharlie Secrets](#limacharlie-secrets)
-  * Stores the Slack and LimaCharlie API keys used for playbook execution
-  * Stores the list of permissions to be granted to the group created during playbook execution
-* [LimaCharlie D&R Rules](#limacharlie-dr-rules)
-  * Detects the slash command emitted from the Slack app
-  * Executes LimaCharlie playbooks
-  * Triggers additional D&R rules for chaining rules to create multi-step workflows
-* [LimaCharlie Playbooks](#limacharlie-playbooks)
-  * Interacts with Slack API to create channels and invite users to channels
-  * Interacts with LimaCharlie API to obtain secrets, create orgs, create groups, and provide users access to orgs
-* [LimaCharlie IaC Templates](#iac-templates)
-  * IaC template to apply to an org when being created, stored in as payloads in LimaCharlie or fetched from a URL
+This shows the following parts of this use case. It is recommended to implement each part in the order provided below: 
+1. [LimaCharlie Webhook Sensor](#limacharlie-webhook-sensor)
+     * Receives the output from the Slack app when using the Slack slash command
+2. [Slack App](#slack-app)
+     * Provides an API token to interact with Slack and configuration of the slash command
+3. [LimaCharlie Secrets](#limacharlie-secrets)
+     * Stores the Slack and LimaCharlie API keys used for playbook execution
+     * Stores the list of permissions to be granted to the group created during playbook execution
+4. [LimaCharlie D&R Rules](#limacharlie-dr-rules)
+     * Detects the slash command emitted from the Slack app
+     * Executes LimaCharlie playbooks
+     * Triggers additional D&R rules for chaining rules to create multi-step workflows
+5. [LimaCharlie Playbooks](#limacharlie-playbooks)
+     * Interacts with Slack API to create channels and invite users to channels
+     * Interacts with LimaCharlie API to obtain secrets, create orgs, create groups, and provide users access to orgs
+6. [LimaCharlie IaC Templates](#iac-templates)
+     * IaC template to apply to an org when being created, stored in as payloads in LimaCharlie or fetched from a URL
 
 ## LimaCharlie Webhook Sensor  
 This can either be done by utilizing the [IaC template](#option-1-sensor-iac-template) below to create and configure the adapter at the same time, or [manual configuration](#option-2-manual-configuration) by creating the webhook adapter through the UI and then applying the necessary configuration via IaC.  
@@ -92,8 +92,8 @@ These are the fields parsed out by the sensor and their corresponding descriptio
   "dvc_product": "Slash Command",
   "dvc_vendor": "Slack",
   "is_enterprise_install": "false",
-  "org_name": "testing-org",
-  "parsed_text": "testing-cmd-4+Chris.botelho@limacharlie.com+true+us+dfir-template",
+  "org_name": "lc-slacker-test",
+  "parsed_text": "lc-slacker-test+Chris.botelho@limacharlie.com+true+us+dfir-template",
   "region": "us",
   "response_url": "https://hooks.slack.com/commands/T123JDD5BEL/1239121488647/cpA21AG16CAlUNvx1j399R12",
   "src_channel_name": "testing",
@@ -101,11 +101,11 @@ These are the fields parsed out by the sensor and their corresponding descriptio
   "src_user_name": "chris.botelho",
   "team_domain": "lc-testing",
   "team_id": "T123JDD5BEL",
-  "template": "dfir",
-  "text": "testing-org+chris.botelho%40limacharlie.com+true+us+dfir",
+  "template": "dfir-template",
+  "text": "lc-slacker-test+Chris.botelho%40limacharlie.com+true+us+dfir-template",
   "token": "Cx5yfJlotU1lxmlol2Dz2UwU",
   "trigger_id": "0239221428647.8253965217191.18cdef33c9823fdc3e234aa4d34dbeef",
-  "users": "chris.botelho@limacharlie.com"
+  "users": "Chris.botelho@limacharlie.com"
 }
 ```
 
@@ -121,13 +121,13 @@ Utilize either the [IaC template](#option-1-sensor-iac-template) below for the f
 #### Option 1: Sensor IaC Template
 Use this template in the IaC menu to create a new webhook sensor that will be used for receiving the output of the Slack slash command. Change the `oid`, `installation_key`, and `secret` fields to their respective values from your organization.  
 
+Download the IaC template here: [iac-slack_slash_sensor.yaml](iac-slack_slash_sensor.yaml)  
+
 > [!IMPORTANT]  
 > Ensure you set the `oid`, `installation_key`, and `secret` fields, or your sensor will not work.  
 > The `secret` field is the Webhook secret that will be included in your webhook URL. A random GUID generator such as [this one](https://www.guidgenerator.com/) works well for this task.
 
 This template will create a new sensor called "Slack_Slash_Commands" and will be preconfigured to parse the Slack slash command output. 
-
-Download the IaC configuration here: [iac-slack_slash_sensor.yaml](iac-slack_slash_sensor.yaml)  
 
 #### Option 2: Manual Configuration
 
@@ -239,7 +239,7 @@ users:read.email
 
 
 #### App Manifest  
-Download the app manifest from here: (slack_app_manifest.json)[slack_app_manifest.json]
+Download the app manifest from here: [slack_app_manifest.json](slack_app_manifest.json)
 
 ```json
 {
@@ -336,7 +336,7 @@ Save each of the secrets below to their own individual entries in the the LimaCh
     > [!TIP]
     > Your secret should look similar to this: `JvNOyQocBNNfWRKIIPEP3YITV0m1/12a4a04e-365a-4fa5-bca7-1c97f0af2ac2` 
 14. Click "Create" to save the secret to your organization  
-**Example:** 
+**Example:**  
 ![Creating secret for user API key](images/create_secret_user_api.png)  
 
 > [!CAUTION]
